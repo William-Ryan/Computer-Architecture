@@ -9,18 +9,6 @@ class CPU:
         # Program Counter
         self.pc = 0 
 
-        # # Internal registers (values between 0-255)
-        # self.PC = self.register[0] # Program Counter, address of the currently executing instruction
-        # self.IR = self.register[1] # Instruction Register, contains a copy of the currently executing instruction
-        # self.MAR = self.register[2] # contains the address that is being read or written to
-        # self.MDR = self.register[3] # contains the data that was read or the data to write
-        # self.FL = self.register[4] # Flags
-
-        # # Reserved internal registers
-        # self.IM = self.register[5] # Interupt mask
-        # self.IS = self.register[6] # Interupt status
-        # self.IP = self.register[7] # Stack pointer
-
     def ram_read(self, MAR):
         return self.ram[MAR]
 
@@ -32,7 +20,7 @@ class CPU:
         """Load a program into memory."""
         try:
             address = 0
-            with open("c:/Users/billy/web27/Computer-Architecture/ls8/examples/mult.ls8") as f:
+            with open("c:/Users/billy/web27/Computer-Architecture/ls8/examples/stack.ls8") as f:
                 for line in f:
                     comment_split = line.split("#")
                     n = comment_split[0].strip()
@@ -82,16 +70,10 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-
-        # PRINT TO SEE WHAT IS LOADED INTO RAM (OPCODES)
-        #for instruction in self.ram:
-            #if instruction != None:
-                #print('Number', instruction)
-                #print("Binary{0:b}".format(instruction))
-
         program_counter = self.pc
         instruction = self.ram[program_counter] # Grabbing instruction from memory based on program counter
         run = True
+        stack_pointer = len(self.register) - 1
 
         while run:
             # Grabbing next two instructions in case they're needed using ram_read
@@ -107,26 +89,36 @@ class CPU:
             elif instruction == 0b10000010:
                 self.register[operand_a] = operand_b # This sets register a with the value b (0,8)
                 self.pc += 3
-                # 10000010 >> 6 = 00000010 = 2
 
             # PRN - Prints the next opcode    
             elif instruction == 0b01000111:
-                #print('PRN')
                 self.pc += 2
                 print(self.register[operand_a])
-                # 01000111 >> 5 = 00000001 = 1
 
             # MUL - Multiply 2 registers together and save result to the first register (SHOULD USE ALU)
             elif instruction == 0b10100010:
-                #print('MUL')
                 self.pc += 3
-                #print('OPS', operand_a, operand_b)
-                #print('MULOP1', self.register[operand_a])
-                #print('MULOP2', self.register[operand_b])
                 self.alu('MUL', operand_a, operand_b)
-                #print('AFTER ALU')
-                #print('MULOP1', self.register[operand_a])
-                #print('MULOP2', self.register[operand_b])
+            
+            # PUSH
+            elif instruction == 0b01000101:
+                stack_pointer -= 1 # Decrement the index for our stack in ram
+                self.ram[stack_pointer] = self.register[operand_a]
+                self.pc += 2
+
+            # POP
+            elif instruction == 0b01000110:
+                '''
+                1. Copy the value from the address pointed to by `SP` to the given register.
+                2. Increment `SP`.
+                '''
+                if stack_pointer < 244:
+                    self.register[operand_a] = self.ram[stack_pointer]
+                    stack_pointer += 1
+                else:
+                    print('Cant push onto an empty stack!')
+
+                self.pc += 2
 
 
             # Point Counter Update/Run update
